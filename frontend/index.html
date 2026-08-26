@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FallGuard AI - Wearable Fall Detection & Monitoring System</title>
+  <meta name="description" content="AI-Based Wearable Fall Detection and Real-Time Activity Monitoring System for clinical and home care.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Chart.js for high performance real-time graphs -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="brand-logo">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="shield-icon">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+          <div class="brand-text">
+            <span class="brand-title">FallGuard<span class="brand-ai">AI</span></span>
+            <span class="brand-subtitle">Clinical Telemetry</span>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="tab-dashboard" id="nav-dashboard">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="nav-item" data-tab="tab-live" id="nav-live">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          <span>Live Monitor</span>
+          <span class="live-dot-pulse"></span>
+        </button>
+        <button class="nav-item" data-tab="tab-falls" id="nav-falls">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+          <span>Fall Incidents</span>
+          <span class="badge-counter alert-badge" id="sidebar-alert-badge" style="display:none;">0</span>
+        </button>
+        <button class="nav-item" data-tab="tab-history" id="nav-history">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+          <span>Activity Log</span>
+        </button>
+        <button class="nav-item" data-tab="tab-analytics" id="nav-analytics">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+          <span>Model Analytics</span>
+        </button>
+        <button class="nav-item" data-tab="tab-settings" id="nav-settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Hardware & IoT</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="connection-status-pill connected" id="ws-status-pill">
+          <span class="status-indicator"></span>
+          <span id="ws-status-text">WS Connected</span>
+        </div>
+        <div class="user-profile-badge">
+          <div class="user-avatar">DR</div>
+          <div class="user-info">
+            <span class="user-name" id="profile-name">Clinical Staff</span>
+            <span class="user-role" id="profile-role">Caregiver View</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-container">
+      <!-- Global Emergency Alert Banner (Appears when active fall unacknowledged) -->
+      <div id="global-alert-banner" class="emergency-banner" style="display:none;">
+        <div class="emergency-content">
+          <div class="emergency-icon-wrap">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+          </div>
+          <div class="emergency-text">
+            <span class="emergency-title">EMERGENCY: FALL DETECTED</span>
+            <span class="emergency-sub" id="banner-alert-msg">High impact deceleration detected on Patient Room 104.</span>
+          </div>
+          <div class="emergency-actions">
+            <button class="btn btn-emergency-ack" id="btn-banner-ack">Acknowledge</button>
+            <button class="btn btn-emergency-view" id="btn-banner-view">View Details</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <h1 class="page-heading" id="page-title">Monitoring Dashboard</h1>
+          <p class="page-subheading" id="page-desc">Real-time wearable sensor stream and posture classification.</p>
+        </div>
+        <div class="header-right">
+          <!-- Simulation Quick Controller -->
+          <div class="quick-sim-card">
+            <span class="sim-label">Simulator:</span>
+            <button class="btn btn-sm btn-primary" id="btn-quick-sim-start">▶ Start</button>
+            <button class="btn btn-sm btn-outline" id="btn-quick-sim-pause">⏸ Pause</button>
+            <button class="btn btn-sm btn-danger" id="btn-quick-sim-fall">⚡ Inject Fall</button>
+          </div>
+          <button class="theme-toggle" id="theme-toggle" title="Toggle Dark/Light Mode">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="sun-icon"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- TAB 1: DASHBOARD OVERVIEW -->
+      <section class="tab-content active" id="tab-dashboard">
+        <!-- Stat Cards Grid -->
+        <div class="stats-grid">
+          <div class="card stat-card stat-activity">
+            <div class="stat-icon-wrap bg-blue">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="5" r="3"/><path d="m9 20 3-6 3 6"/><path d="m6 8 6 2 6-2"/><path d="M12 10v4"/></svg>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Current Posture / Activity</span>
+              <div class="stat-value-row">
+                <span class="stat-val highlight" id="stat-current-activity">WALKING</span>
+                <span class="stat-pill-sm pill-low" id="stat-current-risk">LOW RISK</span>
+              </div>
+              <span class="stat-sub">Model Confidence: <b id="stat-current-conf">95.4%</b></span>
+            </div>
+          </div>
+
+          <div class="card stat-card stat-falls">
+            <div class="stat-icon-wrap bg-red">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Fall Incidents Today</span>
+              <div class="stat-value-row">
+                <span class="stat-val text-danger" id="stat-falls-today">0</span>
+                <span class="stat-pill-sm pill-unack" id="stat-unack-badge">0 Pending</span>
+              </div>
+              <span class="stat-sub">Total Recorded: <b id="stat-total-falls">0</b></span>
+            </div>
+          </div>
+
+          <div class="card stat-card stat-windows">
+            <div class="stat-icon-wrap bg-green">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Inference Windows</span>
+              <div class="stat-value-row">
+                <span class="stat-val" id="stat-total-windows">1,248</span>
+              </div>
+              <span class="stat-sub">Sampling Rate: <b>50 Hz (2.56s window)</b></span>
+            </div>
+          </div>
+
+          <div class="card stat-card stat-model">
+            <div class="stat-icon-wrap bg-purple">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="stat-content">
+              <span class="stat-label">Active AI Model</span>
+              <div class="stat-value-row">
+                <span class="stat-val" id="stat-model-name">Random Forest</span>
+              </div>
+              <span class="stat-sub">Fall Recall: <b class="text-success" id="stat-fall-recall">97.8%</b></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Telemetry Split Layout -->
+        <div class="dashboard-grid">
+          <!-- Mini Live Waveform & Risk Meter -->
+          <div class="card card-graph-preview">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Live Kinematic Waveform Preview</h3>
+                <span class="card-subtitle">Real-time Tri-Axial Acceleration ($a_x, a_y, a_z$) & Acceleration Magnitude</span>
+              </div>
+              <button class="btn btn-sm btn-outline" id="btn-goto-live">Full Monitor →</button>
+            </div>
+            <div class="chart-container" style="height: 240px;">
+              <canvas id="mini-acc-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Active Alerts & Immediate Actions -->
+          <div class="card card-alerts-list">
+            <div class="card-header">
+              <h3 class="card-title">Active Clinical Alerts</h3>
+              <span class="badge-count" id="active-alerts-count">0</span>
+            </div>
+            <div class="alerts-feed" id="dashboard-alerts-feed">
+              <div class="empty-feed">No active unacknowledged fall alerts. System nominal.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Activity Feed Table -->
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Recent Real-Time Posture Telemetry</h3>
+              <span class="card-subtitle">Latest 2.56-second classified sliding windows</span>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Device ID</th>
+                  <th>Classified Activity</th>
+                  <th>Model Confidence</th>
+                  <th>Risk Level</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="dashboard-recent-table-body">
+                <tr><td colspan="6" class="text-center">Awaiting telemetry stream...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: LIVE SENSOR MONITOR (6-Axis Telemetry) -->
+      <section class="tab-content" id="tab-live">
+        <!-- Live Status Bar -->
+        <div class="live-status-bar">
+          <div class="live-metric-chip">
+            <span class="chip-label">Current Activity:</span>
+            <span class="chip-val highlight" id="live-act-name">WALKING</span>
+          </div>
+          <div class="live-metric-chip">
+            <span class="chip-label">Confidence:</span>
+            <span class="chip-val" id="live-act-conf">94.2%</span>
+          </div>
+          <div class="live-metric-chip">
+            <span class="chip-label">Risk Evaluation:</span>
+            <span class="stat-pill-sm pill-low" id="live-act-risk">LOW RISK</span>
+          </div>
+          <div class="live-metric-chip">
+            <span class="chip-label">Stream Frequency:</span>
+            <span class="chip-val">50.0 Hz</span>
+          </div>
+          <div class="live-metric-chip">
+            <span class="chip-label">Peak Deceleration:</span>
+            <span class="chip-val" id="live-peak-acc">1.04 g</span>
+          </div>
+        </div>
+
+        <!-- Simulation Controller Card -->
+        <div class="card sim-panel-card">
+          <div class="card-header">
+            <h3 class="card-title">IoT Wearable Simulator Controls</h3>
+            <span class="badge-status-running" id="sim-badge-status">Simulator Idle</span>
+          </div>
+          <div class="sim-controls-grid">
+            <div class="sim-control-group">
+              <label>Kinematic Scenario:</label>
+              <select id="sim-scenario-select" class="form-control">
+                <option value="mixed_activities_with_fall">Mixed Activities + Slip Fall Incident</option>
+                <option value="dataset_replay">Replay Real Test Subject Data (UCI HAR / SisFall)</option>
+              </select>
+            </div>
+            <div class="sim-control-group">
+              <label>Playback Speed:</label>
+              <div class="speed-btn-group">
+                <button class="btn btn-speed active" data-speed="1.0">1.0x (50Hz Real-Time)</button>
+                <button class="btn btn-speed" data-speed="2.0">2.0x</button>
+                <button class="btn btn-speed" data-speed="5.0">5.0x</button>
+              </div>
+            </div>
+            <div class="sim-actions-group">
+              <button class="btn btn-primary" id="btn-sim-start">▶ Start Stream</button>
+              <button class="btn btn-outline" id="btn-sim-pause">⏸ Pause</button>
+              <button class="btn btn-danger" id="btn-sim-stop">⏹ Stop</button>
+              <button class="btn btn-warning" id="btn-sim-manual-fall">🚨 Trigger Emergency Fall</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 6-Axis Charts Grid -->
+        <div class="charts-2col-grid">
+          <!-- Accelerometer Chart -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">3-Axis Accelerometer ($a_x, a_y, a_z$) & Total Magnitude</h3>
+                <span class="card-subtitle">Units: Standard Gravity ($1\text{g} = 9.81\text{ m/s}^2$)</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 280px;">
+              <canvas id="live-acc-chart"></canvas>
+            </div>
+          </div>
+
+          <!-- Gyroscope Chart -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">3-Axis Gyroscope ($\omega_x, \omega_y, \omega_z$)</h3>
+                <span class="card-subtitle">Units: Angular Velocity ($\text{rad/s}$)</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 280px;">
+              <canvas id="live-gyro-chart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Real-time Class Probabilities Breakdown -->
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Model Activity Probability Distribution (Softmax Output)</h3>
+          </div>
+          <div class="prob-bars-grid" id="prob-bars-container">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: FALL INCIDENTS -->
+      <section class="tab-content" id="tab-falls">
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Historical Fall Incidents & Caregiver Log</h3>
+              <span class="card-subtitle">Comprehensive record of detected impact signatures, acknowledgments, and clinical notes</span>
+            </div>
+            <div class="table-actions">
+              <select id="filter-fall-status" class="form-control form-control-sm">
+                <option value="">All Statuses</option>
+                <option value="UNACKNOWLEDGED">Unacknowledged</option>
+                <option value="ACKNOWLEDGED">Acknowledged</option>
+              </select>
+              <button class="btn btn-sm btn-outline" id="btn-refresh-falls">🔄 Refresh</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Incident ID</th>
+                  <th>Timestamp</th>
+                  <th>Device / Room</th>
+                  <th>Confidence</th>
+                  <th>Peak Deceleration</th>
+                  <th>Risk Level</th>
+                  <th>Status</th>
+                  <th>Caregiver Notes</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="falls-table-body">
+                <tr><td colspan="9" class="text-center">Loading fall records...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: ACTIVITY HISTORY -->
+      <section class="tab-content" id="tab-history">
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Time-Series Activity Audit Log</h3>
+              <span class="card-subtitle">Filterable log of all classified posture windows</span>
+            </div>
+            <div class="table-actions">
+              <select id="filter-act-name" class="form-control form-control-sm">
+                <option value="">All Activities</option>
+                <option value="WALKING">Walking</option>
+                <option value="SITTING">Sitting</option>
+                <option value="STANDING">Standing</option>
+                <option value="LAYING">Laying</option>
+                <option value="WALKING_UPSTAIRS">Walking Upstairs</option>
+                <option value="WALKING_DOWNSTAIRS">Walking Downstairs</option>
+                <option value="FALL">Fall</option>
+              </select>
+              <select id="filter-act-risk" class="form-control form-control-sm">
+                <option value="">All Risk Levels</option>
+                <option value="HIGH">High Risk</option>
+                <option value="MEDIUM">Medium Risk</option>
+                <option value="LOW">Low Risk</option>
+              </select>
+              <button class="btn btn-sm btn-outline" id="btn-refresh-history">🔄 Refresh</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Timestamp</th>
+                  <th>Device ID</th>
+                  <th>Classified Activity</th>
+                  <th>Confidence</th>
+                  <th>Risk Level</th>
+                  <th>Model Version</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <tr><td colspan="7" class="text-center">Loading activity logs...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: MODEL ANALYTICS & EXPLAINABILITY -->
+      <section class="tab-content" id="tab-analytics">
+        <!-- Model Overview Banner -->
+        <div class="card model-meta-card">
+          <div class="model-meta-grid">
+            <div>
+              <span class="meta-label">Selected Champion Model</span>
+              <h2 class="meta-val highlight" id="analytics-model-name">Random Forest Classifier</h2>
+            </div>
+            <div>
+              <span class="meta-label">Fall Sensitivity (Recall)</span>
+              <h2 class="meta-val text-success" id="analytics-fall-recall">--</h2>
+            </div>
+            <div>
+              <span class="meta-label">Macro F1-Score</span>
+              <h2 class="meta-val" id="analytics-macro-f1">--</h2>
+            </div>
+            <div>
+              <span class="meta-label">Total Engineered Features</span>
+              <h2 class="meta-val" id="analytics-feat-count">--</h2>
+            </div>
+          </div>
+        </div>
+
+        <!-- 5-Model Benchmark Comparison Table -->
+        <div class="card table-card">
+          <div class="card-header">
+            <div>
+              <h3 class="card-title">Comprehensive 5-Model Performance Benchmark</h3>
+              <span class="card-subtitle">Evaluated on strictly isolated, unseen subject test partitions (Zero Data Leakage)</span>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" id="models-benchmark-table">
+              <thead>
+                <tr>
+                  <th>Model Architecture</th>
+                  <th>Accuracy</th>
+                  <th>Macro F1</th>
+                  <th>Fall Recall (Safety)</th>
+                  <th>Fall Precision</th>
+                  <th>Fall FPR</th>
+                  <th>Fall FNR</th>
+                  <th>Composite Score</th>
+                </tr>
+              </thead>
+              <tbody id="models-benchmark-tbody">
+                <tr><td colspan="8" class="text-center">Loading model comparison metrics...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Feature Importance & Figures Grid -->
+        <div class="charts-2col-grid">
+          <!-- Top Feature Importance Ranking -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Top 10 Influential Sensor Features</h3>
+                <span class="card-subtitle">Gini Feature Importance / Kinematic Contribution</span>
+              </div>
+            </div>
+            <div class="feat-importance-list" id="feat-importance-container">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+
+          <!-- Confusion Matrix / Figures Preview -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h3 class="card-title">Confusion Matrix & Visualizations</h3>
+                <span class="card-subtitle">Generated high-resolution evaluation figures</span>
+              </div>
+            </div>
+            <div class="figure-preview-box">
+              <img src="/api/model/figures/confusion_matrix_best.png" alt="Confusion Matrix" class="fig-img" onerror="this.src='/static/img/placeholder.svg';">
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: HARDWARE & IOT -->
+      <section class="tab-content" id="tab-settings">
+        <div class="charts-2col-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">IoT Wearable Integration Guide (ESP32 + MPU6050)</h3>
+            </div>
+            <div class="hardware-guide-body">
+              <p>FallGuard AI is designed to interface with wearable microcontrollers streaming 6-axis IMU data over Wi-Fi or Bluetooth.</p>
+              
+              <h4>Hardware Wiring Table:</h4>
+              <table class="data-table mini-table">
+                <thead>
+                  <tr><th>ESP32 GPIO</th><th>MPU-6050 Pin</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>3.3V</td><td>VCC</td><td>Power Supply</td></tr>
+                  <tr><td>GND</td><td>GND</td><td>Ground</td></tr>
+                  <tr><td>GPIO 21</td><td>SDA</td><td>I2C Data Line</td></tr>
+                  <tr><td>GPIO 22</td><td>SCL</td><td>I2C Clock Line</td></tr>
+                </tbody>
+              </table>
+
+              <h4>Sampling Configuration:</h4>
+              <ul class="settings-list">
+                <li><b>Frequency:</b> 50 Hz (20ms timer interval)</li>
+                <li><b>Accelerometer Sensitivity:</b> ±8g range (captures shock deceleration up to 8g)</li>
+                <li><b>Gyroscope Sensitivity:</b> ±1000 deg/s</li>
+                <li><b>Window Protocol:</b> 128 samples (2.56s) with 50% overlap</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">System & Alert Thresholds</h3>
+            </div>
+            <div class="settings-form">
+              <div class="form-group">
+                <label>High Risk Fall Confidence Threshold:</label>
+                <input type="number" step="0.05" min="0.5" max="1.0" value="0.85" class="form-control" readonly>
+                <span class="help-text">Probabilities above 85% trigger instant high-priority alerts.</span>
+              </div>
+              <div class="form-group">
+                <label>Medium Risk / Suspicious Motion Threshold:</label>
+                <input type="number" step="0.05" min="0.3" max="0.8" value="0.60" class="form-control" readonly>
+                <span class="help-text">Flags balance loss and sudden high jerks.</span>
+              </div>
+              <div class="form-group">
+                <label>Alert Cooldown Interval (Seconds):</label>
+                <input type="number" value="5" class="form-control" readonly>
+                <span class="help-text">Suppresses duplicate alert storms during recovery.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Acknowledge Fall Modal -->
+  <div class="modal-backdrop" id="ack-modal" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Acknowledge Fall Incident #<span id="modal-fall-id"></span></h3>
+        <button class="modal-close" id="btn-close-modal">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-info-row">
+          <span><b>Detected Time:</b> <span id="modal-fall-time"></span></span>
+          <span><b>Confidence:</b> <span id="modal-fall-conf"></span></span>
+        </div>
+        <div class="form-group">
+          <label>Caregiver / Staff Name:</label>
+          <input type="text" id="modal-ack-staff" class="form-control" value="Primary Caregiver">
+        </div>
+        <div class="form-group">
+          <label>Clinical Notes / Patient Status:</label>
+          <textarea id="modal-ack-notes" class="form-control" rows="3" placeholder="Enter post-incident inspection notes, patient assistance provided, or observations..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" id="btn-cancel-modal">Cancel</button>
+        <button class="btn btn-primary" id="btn-confirm-ack">Confirm Acknowledgment</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

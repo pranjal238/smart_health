@@ -54,3 +54,6 @@ htmlcov/
 # Logs
 *.log
 logs/
+
+# Environment variables and secrets
+.env

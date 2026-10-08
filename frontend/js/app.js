@@ -177,8 +177,14 @@ class FallGuardApp {
       this.updateWaveforms(msg.data);
     } else if (msg.type === "ACTIVITY_UPDATE") {
       this.updateActivityState(msg.data);
+    } else if (msg.type === "FALL_PENDING_CONFIRMATION") {
+      this.handlePendingConfirmation(msg.event);
+    } else if (msg.type === "FALL_CONFIRMATION_RESOLVED") {
+      this.handleConfirmationResolved(msg.data);
     } else if (msg.type === "FALL_ALERT") {
       this.handleFallAlert(msg.event);
+    } else if (msg.type === "DEVICE_STATUS_UPDATE") {
+      this.updateDeviceStatus(msg.data);
     }
   }
 
@@ -290,6 +296,48 @@ class FallGuardApp {
     // Refresh falls table if active
     this.loadFallIncidents();
     this.loadDashboardSummary();
+  }
+
+  handlePendingConfirmation(event) {
+    this.currentActiveFallId = event.id || event.event_id;
+    const banner = document.getElementById("global-alert-banner");
+    const msg = document.getElementById("banner-alert-msg");
+    if (banner && msg) {
+      msg.innerHTML = `⚠️ <b>POTENTIAL FALL DETECTED</b> on device <code>${event.device_id}</code>. Smartphone user verification in progress (${event.timeout_seconds || 15}s timeout)...`;
+      banner.style.display = "block";
+      banner.style.backgroundColor = "rgba(245, 158, 11, 0.95)"; // Warning amber
+    }
+  }
+
+  handleConfirmationResolved(data) {
+    const banner = document.getElementById("global-alert-banner");
+    const msg = document.getElementById("banner-alert-msg");
+    if (!banner || !msg) return;
+
+    if (data.status === "CANCELLED_BY_USER") {
+      msg.innerHTML = `✅ <b>SAFE CONFIRMATION</b>: User on <code>${data.device_id}</code> pressed "I'm OK". False alarm cancelled.`;
+      banner.style.backgroundColor = "rgba(16, 185, 129, 0.95)"; // Green
+      setTimeout(() => {
+        banner.style.display = "none";
+      }, 5000);
+    } else if (data.status === "CONFIRMED") {
+      msg.innerHTML = `🚨 <b>CONFIRMED FALL INCIDENT</b> on device <code>${data.device_id}</code>! Emergency escalation dispatched.`;
+      banner.style.backgroundColor = "rgba(239, 68, 68, 0.95)"; // Red
+    }
+    this.loadFallIncidents();
+    this.loadDashboardSummary();
+  }
+
+  updateDeviceStatus(data) {
+    const textEl = document.getElementById("phone-status-text");
+    if (!textEl) return;
+    if (data.connected) {
+      textEl.textContent = `Online (${data.device_id})`;
+      textEl.style.color = "#10B981"; // Green
+    } else {
+      textEl.textContent = `Disconnected`;
+      textEl.style.color = "#94A3B8"; // Grey
+    }
   }
 
   // --- Chart.js Initializers ---

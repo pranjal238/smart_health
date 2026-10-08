@@ -7,6 +7,7 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime
 
 # --- Auth Schemas ---
+# --- Auth & Profile Schemas ---
 class UserLogin(BaseModel):
     email: str
     password: str
@@ -16,16 +17,56 @@ class UserResponse(BaseModel):
     name: str
     email: str
     role: str
+    phone_number: Optional[str] = None
+    emergency_contact_name: Optional[str] = None
+    emergency_contact_phone: Optional[str] = None
+    emergency_contact_email: Optional[str] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+class EmergencyContactUpdate(BaseModel):
+    emergency_contact_name: str
+    emergency_contact_phone: str
+    emergency_contact_email: Optional[str] = None
+    phone_number: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
 
-# --- Sensor Schemas ---
+# --- Smartphone & Sensor Schemas ---
+class SensorAxisData(BaseModel):
+    x: float
+    y: float
+    z: float
+
+class SmartphoneSensorMessage(BaseModel):
+    type: str = "sensor_data"
+    version: int = 1
+    device_id: str = "phone_001"
+    timestamp: float = Field(..., description="Timestamp in epoch seconds or milliseconds")
+    unit: str = Field(default="m/s2", description="Accelerometer units: 'm/s2' (Android default) or 'g'")
+    accelerometer: SensorAxisData
+    gyroscope: SensorAxisData
+    location: Optional[Dict[str, float]] = None
+
+class FallConfirmationPayload(BaseModel):
+    type: str = "fall_confirmation"
+    event_id: int
+    action: str = Field(..., description="'I_AM_OK' or 'NEED_HELP'")
+    location: Optional[Dict[str, float]] = None
+
+class DeviceStatus(BaseModel):
+    device_id: str
+    user_id: Optional[int] = None
+    connected: bool = False
+    last_seen: Optional[datetime] = None
+    samples_received: int = 0
+    buffer_samples: int = 0
+    buffer_seconds: float = 0.0
+
 class SensorReadingCreate(BaseModel):
     device_id: str = "WEARABLE_DEV_01"
     timestamp: Optional[datetime] = None
@@ -54,6 +95,9 @@ class SingleWindowPredictionRequest(BaseModel):
 
 class PredictionResponse(BaseModel):
     activity: str
+    ml_activity: str = "WALKING"
+    ml_fall_probability: float = 0.0
+    safety_override: bool = False
     confidence: float
     risk_level: str # HIGH, MEDIUM, LOW
     is_fall: bool
@@ -70,17 +114,28 @@ class BatchPredictionResponse(BaseModel):
 # --- Fall & Alert Schemas ---
 class FallEventResponse(BaseModel):
     id: int
+    user_id: Optional[int] = None
+    device_id: str
     timestamp: datetime
+    activity: str = "FALL"
+    ml_activity: Optional[str] = None
     confidence: float
+    fall_probability: Optional[float] = None
+    safety_override: bool = False
     risk_level: str
     status: str
+    confirmed: bool = False
+    alert_sent: bool = False
+    emergency_contact: Optional[str] = None
+    location_lat: Optional[float] = None
+    location_lon: Optional[float] = None
     acknowledged: bool
     acknowledged_at: Optional[datetime] = None
     acknowledged_by: Optional[str] = None
     notes: Optional[str] = None
-    device_id: str
     acc_peak: Optional[float] = None
     gyro_peak: Optional[float] = None
+    model_version: Optional[str] = "1.0.0"
 
     model_config = {"from_attributes": True}
 

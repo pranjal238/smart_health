@@ -46,6 +46,10 @@ data/models/*.joblib
 .DS_Store
 Thumbs.db
 
+# Android / Gradle
+.gradle/
+**/build/
+
 # Testing & Coverage
 .pytest_cache/
 .coverage

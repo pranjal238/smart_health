@@ -13,6 +13,8 @@ from backend.schemas.schemas import DashboardSummary, AlertResponse, ActivityHis
 from backend.services.simulation_service import simulation_service
 from backend.services.prediction_service import prediction_service
 
+from backend.services.sensor_stream_manager import sensor_stream_manager
+
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
 @router.get("/summary", response_model=DashboardSummary)
@@ -38,12 +40,15 @@ def get_dashboard_summary(db: Session = Depends(get_db)):
     alerts = db.query(Alert).filter(Alert.acknowledged_at == None).order_by(Alert.created_at.desc()).limit(5).all()
     recent_acts = db.query(ActivityPrediction).order_by(ActivityPrediction.timestamp.desc()).limit(15).all()
     
+    phone_connected = any(buf.connected for buf in sensor_stream_manager.devices.values())
+    is_connected = phone_connected or simulation_service.is_running
+
     return DashboardSummary(
         current_activity=current_activity,
         current_confidence=round(current_confidence, 4),
         current_risk=current_risk,
-        system_status="ONLINE" if simulation_service.is_running else "READY",
-        sensor_connected=True,
+        system_status="ONLINE" if is_connected else "READY",
+        sensor_connected=is_connected,
         total_activities_count=total_acts,
         total_falls_count=total_falls,
         falls_today_count=falls_today,

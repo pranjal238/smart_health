@@ -9,12 +9,60 @@ from backend.database.session import engine, SessionLocal
 from backend.models.db_models import Base, User, ActivityPrediction, FallEvent, Alert, SystemLog, SensorReading
 from backend.core.security import hash_password
 
+from sqlalchemy import inspect, text
+
 logger = logging.getLogger("InitDB")
+
+def migrate_sqlite_columns():
+    """Ensure newly added columns exist in existing SQLite databases."""
+    try:
+        insp = inspect(engine)
+        tables = insp.get_table_names()
+        with engine.connect() as conn:
+            if "users" in tables:
+                user_cols = [c["name"] for c in insp.get_columns("users")]
+                if "phone_number" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN phone_number VARCHAR(50)"))
+                if "emergency_contact_name" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN emergency_contact_name VARCHAR(100)"))
+                if "emergency_contact_phone" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN emergency_contact_phone VARCHAR(50)"))
+                if "emergency_contact_email" not in user_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN emergency_contact_email VARCHAR(150)"))
+
+            if "fall_events" in tables:
+                fall_cols = [c["name"] for c in insp.get_columns("fall_events")]
+                if "user_id" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN user_id INTEGER"))
+                if "activity" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN activity VARCHAR(100) DEFAULT 'FALL'"))
+                if "ml_activity" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN ml_activity VARCHAR(100)"))
+                if "fall_probability" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN fall_probability FLOAT"))
+                if "safety_override" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN safety_override BOOLEAN DEFAULT 0"))
+                if "confirmed" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN confirmed BOOLEAN DEFAULT 0"))
+                if "alert_sent" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN alert_sent BOOLEAN DEFAULT 0"))
+                if "emergency_contact" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN emergency_contact VARCHAR(200)"))
+                if "location_lat" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN location_lat FLOAT"))
+                if "location_lon" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN location_lon FLOAT"))
+                if "model_version" not in fall_cols:
+                    conn.execute(text("ALTER TABLE fall_events ADD COLUMN model_version VARCHAR(50) DEFAULT '1.0.0'"))
+            conn.commit()
+    except Exception as e:
+        logger.warning(f"Note on DB schema migration: {e}")
 
 def init_db():
     """Create all database tables and seed default users."""
     logger.info("Creating database tables...")
     Base.metadata.create_all(bind=engine)
+    migrate_sqlite_columns()
     
     db = SessionLocal()
     try:
@@ -27,6 +75,10 @@ def init_db():
                 email="admin@fallguard.ai",
                 hashed_password=hash_password("admin123"),
                 role="ADMIN",
+                phone_number="+15550100",
+                emergency_contact_name="Emergency Response Desk",
+                emergency_contact_phone="+15550199",
+                emergency_contact_email="emergency@fallguard.ai",
                 created_at=datetime.utcnow()
             )
             caregiver = User(
@@ -34,6 +86,10 @@ def init_db():
                 email="caregiver@fallguard.ai",
                 hashed_password=hash_password("caregiver123"),
                 role="CAREGIVER",
+                phone_number="+15550101",
+                emergency_contact_name="Dr. Smith (Primary Physician)",
+                emergency_contact_phone="+15550198",
+                emergency_contact_email="caregiver.desk@fallguard.ai",
                 created_at=datetime.utcnow()
             )
             db.add_all([admin, caregiver])

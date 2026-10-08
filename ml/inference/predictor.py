@@ -94,9 +94,12 @@ class FallDetector:
             
             return {
                 "activity": activity,
+                "ml_activity": "WALKING",
+                "ml_fall_probability": 0.88 if is_fall else 0.05,
+                "safety_override": bool(is_fall),
+                "is_fall": bool(is_fall),
                 "confidence": round(confidence, 4),
                 "risk_level": risk_level,
-                "is_fall": bool(is_fall),
                 "probabilities": {activity: round(confidence, 4)},
                 "model_name": self.model_name,
                 "model_version": "1.0.0-fallback",
@@ -117,7 +120,7 @@ class FallDetector:
             
         # Model Prediction
         pred_idx = self.model.predict(feature_vector)[0]
-        predicted_activity = self.classes[pred_idx] if pred_idx < len(self.classes) else "UNKNOWN"
+        ml_predicted_activity = self.classes[pred_idx] if pred_idx < len(self.classes) else "UNKNOWN"
         
         prob_dict = {}
         if hasattr(self.model, "predict_proba"):
@@ -126,37 +129,46 @@ class FallDetector:
                 if idx < len(probs):
                     prob_dict[cls_name] = float(round(probs[idx], 4))
             confidence = float(np.max(probs))
-            fall_prob = prob_dict.get("FALL", 0.0)
+            ml_fall_prob = prob_dict.get("FALL", 0.0)
         else:
             confidence = 0.90
-            fall_prob = 1.0 if predicted_activity == "FALL" else 0.0
-            prob_dict[predicted_activity] = 1.0
+            ml_fall_prob = 1.0 if ml_predicted_activity == "FALL" else 0.0
+            prob_dict[ml_predicted_activity] = 1.0
 
         # Two-Stage Fall Detection Logic
+        # Heuristic impact screening (peak deceleration and sharp rotational burst)
+        acc_peak = float(feats.get("acc_mag_max", 0.0))
+        gyro_peak = float(feats.get("gyro_mag_max", 0.0))
+        heuristic_fall = (acc_peak >= 2.8 and gyro_peak >= 2.2)
+
         # Stage 1: Fall Screening (High Sensitivity for dangerous impacts + Model Probability)
-        is_fall = (predicted_activity == "FALL") or (fall_prob >= 0.50) or (feats.get("acc_mag_max", 0.0) >= 2.8 and feats.get("gyro_mag_max", 0.0) >= 2.2)
+        is_fall = (ml_predicted_activity == "FALL") or (ml_fall_prob >= 0.50) or heuristic_fall
+        safety_override = bool(is_fall and ml_predicted_activity != "FALL")
+        final_activity = "FALL" if is_fall else ml_predicted_activity
         
         # Determine Risk Level: HIGH / MEDIUM / LOW
         if is_fall:
             risk_level = "HIGH"
-            predicted_activity = "FALL" # Prioritize fall notification
-        elif fall_prob >= 0.25 or (feats.get("acc_mag_max", 0.0) > 2.2 and feats.get("gyro_mag_max", 0.0) > 1.8):
+        elif ml_fall_prob >= 0.25 or (acc_peak > 2.2 and gyro_peak > 1.8):
             risk_level = "MEDIUM"
         else:
             risk_level = "LOW"
 
         return {
-            "activity": predicted_activity,
+            "activity": final_activity,
+            "ml_activity": ml_predicted_activity,
+            "ml_fall_probability": round(ml_fall_prob, 4),
+            "safety_override": safety_override,
+            "is_fall": bool(is_fall),
             "confidence": round(confidence, 4),
             "risk_level": risk_level,
-            "is_fall": bool(is_fall),
             "probabilities": prob_dict,
             "model_name": self.model_name,
             "model_version": "1.0.0",
             "timestamp": now_ts,
             "features_summary": {
-                "acc_mag_max": round(feats.get("acc_mag_max", 0.0), 3),
-                "gyro_mag_max": round(feats.get("gyro_mag_max", 0.0), 3),
+                "acc_mag_max": round(acc_peak, 3),
+                "gyro_mag_max": round(gyro_peak, 3),
                 "jerk_max": round(feats.get("jerk_max", 0.0), 3),
                 "pitch_mean": round(feats.get("pitch_mean", 0.0), 2),
                 "roll_mean": round(feats.get("roll_mean", 0.0), 2)

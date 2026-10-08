@@ -39,6 +39,21 @@ class Settings:
     FALL_CONFIDENCE_MEDIUM: float = float(os.getenv("FALL_CONFIDENCE_MEDIUM", 0.60))
     ALERT_COOLDOWN_SECONDS: int = int(os.getenv("ALERT_COOLDOWN_SECONDS", 5))
     
+    # Smartphone Sensor Stream & Bounded Buffer (Strict 5-Second Retention)
+    BUFFER_DURATION_SECONDS: float = float(os.getenv("BUFFER_DURATION_SECONDS", 5.0))
+    PHONE_SAMPLING_RATE: float = float(os.getenv("PHONE_SAMPLING_RATE", 50.0))
+    MAX_BUFFER_SAMPLES: int = int(BUFFER_DURATION_SECONDS * PHONE_SAMPLING_RATE) # 250 samples
+    INFERENCE_STRIDE_SAMPLES: int = int(os.getenv("INFERENCE_STRIDE_SAMPLES", 25)) # 0.5s at 50Hz
+
+    # Fall Confirmation & False Alarm Mitigation
+    FALL_CONFIRMATION_TIMEOUT_SECONDS: float = float(os.getenv("FALL_CONFIRMATION_TIMEOUT_SECONDS", 15.0))
+
+    # Emergency Alert Provider Settings
+    EMERGENCY_PROVIDER: str = os.getenv("EMERGENCY_PROVIDER", "mock").lower() # 'mock', 'twilio'
+    TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_FROM_NUMBER: str = os.getenv("TWILIO_FROM_NUMBER", "")
+
     # Directories
     STATIC_DIR: Path = BASE_DIR / "frontend"
     REPORTS_DIR: Path = BASE_DIR / "reports"

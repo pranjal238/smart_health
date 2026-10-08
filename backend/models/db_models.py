@@ -16,10 +16,22 @@ class User(Base):
     name = Column(String(100), nullable=False)
     email = Column(String(150), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
-    role = Column(String(50), default="CAREGIVER", nullable=False) # ADMIN, CAREGIVER
+    role = Column(String(50), default="CAREGIVER", nullable=False) # ADMIN, CAREGIVER, PATIENT
+    phone_number = Column(String(50), nullable=True)
+    emergency_contact_name = Column(String(100), nullable=True)
+    emergency_contact_phone = Column(String(50), nullable=True)
+    emergency_contact_email = Column(String(150), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    
+    falls = relationship("FallEvent", back_populates="user")
 
 class SensorReading(Base):
+    """
+    DEPRECATED TABLE:
+    Raw sensor streams are strictly transient in memory (rolling 5-second ring buffer)
+    and NEVER continuously accumulated in production databases to safeguard user privacy.
+    Retained solely for database migration compatibility.
+    """
     __tablename__ = "sensor_readings"
     
     id = Column(Integer, primary_key=True, index=True)
@@ -50,18 +62,38 @@ class FallEvent(Base):
     __tablename__ = "fall_events"
     
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    device_id = Column(String(100), default="WEARABLE_DEV_01", index=True)
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    activity = Column(String(100), default="FALL", nullable=False)
+    ml_activity = Column(String(100), nullable=True)
     confidence = Column(Float, nullable=False)
+    fall_probability = Column(Float, nullable=True)
+    safety_override = Column(Boolean, default=False, nullable=False)
     risk_level = Column(String(50), default="HIGH", nullable=False)
-    status = Column(String(50), default="UNACKNOWLEDGED", nullable=False) # UNACKNOWLEDGED, ACKNOWLEDGED, RESOLVED, FALSE_ALARM
+    
+    # Status lifecycle: PENDING_CONFIRMATION -> CONFIRMED / CANCELLED_BY_USER -> ACKNOWLEDGED / RESOLVED
+    status = Column(String(50), default="UNACKNOWLEDGED", nullable=False)
+    confirmed = Column(Boolean, default=False, nullable=False)
+    alert_sent = Column(Boolean, default=False, nullable=False)
+    emergency_contact = Column(String(200), nullable=True)
+    
+    # Optional emergency GPS coordinates
+    location_lat = Column(Float, nullable=True)
+    location_lon = Column(Float, nullable=True)
+    
+    # Caregiver review
     acknowledged = Column(Boolean, default=False, nullable=False)
     acknowledged_at = Column(DateTime, nullable=True)
     acknowledged_by = Column(String(100), nullable=True)
     notes = Column(Text, nullable=True)
-    device_id = Column(String(100), default="WEARABLE_DEV_01")
+    
+    # Sensor impact telemetry peaks
     acc_peak = Column(Float, nullable=True)
     gyro_peak = Column(Float, nullable=True)
+    model_version = Column(String(50), default="1.0.0")
     
+    user = relationship("User", back_populates="falls")
     alerts = relationship("Alert", back_populates="fall_event", cascade="all, delete-orphan")
 
 class Alert(Base):

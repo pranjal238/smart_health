@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FallGuard AI</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_connected">Connected &amp; Streaming</string>
+    <string name="btn_start">Start Monitoring</string>
+    <string name="btn_stop">Stop Monitoring</string>
+    <string name="im_ok">I\'M OK</string>
+    <string name="need_help">NEED HELP</string>
+    <string name="possible_fall_title">Possible Fall Detected!</string>
+    <string name="possible_fall_subtitle">Are you okay? We will contact emergency services if you don\'t respond.</string>
+</resources>
